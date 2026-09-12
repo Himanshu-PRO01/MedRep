@@ -27,6 +27,7 @@ class ReportRepository(private val dao: ReportDao) {
               "date": "...",
               "urgency": "NORMAL" | "ATTENTION" | "URGENT",
               "urgencyTitle": "...",
+              "category": "Blood Test" | "Imaging" | "Prescription" | "Other",
               "patientSummary": "...",
               "language": "English",
               "testItems": [
@@ -64,6 +65,7 @@ class ReportRepository(private val dao: ReportDao) {
               "date": "...",
               "urgency": "NORMAL" | "ATTENTION" | "URGENT",
               "urgencyTitle": "...",
+              "category": "Blood Test" | "Imaging" | "Prescription" | "Other",
               "patientSummary": "...",
               "language": "English",
               "testItems": [

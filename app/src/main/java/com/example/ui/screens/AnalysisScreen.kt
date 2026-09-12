@@ -19,12 +19,16 @@ import com.example.ui.MainViewModel
 
 import android.view.HapticFeedbackConstants
 import androidx.compose.ui.platform.LocalView
+import android.content.Intent
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.material.icons.filled.Share
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AnalysisScreen(viewModel: MainViewModel, onBack: () -> Unit) {
     val state by viewModel.analysisState.collectAsState()
     val view = LocalView.current
+    val context = LocalContext.current
     
     when (val s = state) {
         is AnalysisState.Success -> {
@@ -39,6 +43,26 @@ fun AnalysisScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                             }
                         },
                         actions = {
+                            IconButton(onClick = {
+                                view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                                val shareText = """
+                                    Report: ${report.title}
+                                    Date: ${report.date}
+                                    Category: ${report.category}
+                                    Urgency: ${report.urgencyTitle}
+                                    
+                                    Summary:
+                                    ${report.patientSummary}
+                                """.trimIndent()
+                                val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                                    putExtra(Intent.EXTRA_TEXT, shareText)
+                                    type = "text/plain"
+                                }
+                                val shareIntent = Intent.createChooser(sendIntent, "Share Report Summary")
+                                context.startActivity(shareIntent)
+                            }) {
+                                Icon(Icons.Default.Share, contentDescription = "Share Report Summary")
+                            }
                             IconButton(onClick = { 
                                 view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
                                 viewModel.saveReport(report) 

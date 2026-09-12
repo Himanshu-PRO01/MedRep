@@ -17,6 +17,7 @@ data class SavedReport(
     val date: String,
     val urgency: String,
     val urgencyTitle: String,
+    val category: String = "Other",
     val patientSummary: String,
     val language: String,
     val testItems: List<TestItem>,
