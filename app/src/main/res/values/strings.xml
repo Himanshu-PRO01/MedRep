@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">Medical Report Reader</string>
+    <string name="app_tagline">Simplifying medical reports for you and your family</string>
+    <string name="scan_report">Scan Report</string>
+    <string name="take_photo">Take Photo</string>
+    <string name="choose_gallery">Choose Image</string>
+    <string name="paste_text">Enter Text</string>
+    <string name="try_sample">Try Sample</string>
+    <string name="listen_aloud">Listen Aloud</string>
+    <string name="stop_listening">Stop Audio</string>
+    <string name="history_title">Saved Reports</string>
+    <string name="disclaimer_notice">Notice: This tool explains complex medical terms in everyday words to empower you. Always consult your doctor for medical advice and prescriptions.</string>
+</resources>

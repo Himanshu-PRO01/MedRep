@@ -1,0 +1,7 @@
+{
+  "name": "android-app",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "echo 'Android app builds via gradle'"
+  }
+}

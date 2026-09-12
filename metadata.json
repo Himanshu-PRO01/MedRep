@@ -1,0 +1,6 @@
+{
+  "name": "Medical Report Reader",
+  "description": "An accessible medical report explainer that translates complex lab reports into plain language, voice read-aloud, and native languages for needy patients.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
