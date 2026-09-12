@@ -1,6 +1,7 @@
 package com.example
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.compose.setContent
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
@@ -28,7 +29,6 @@ import com.example.ui.screens.AnalysisScreen
 import com.example.ui.screens.HistoryScreen
 import com.example.ui.screens.ReportScannerScreen
 import com.example.ui.theme.AppTheme
-
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.fadeIn
@@ -37,6 +37,25 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material.icons.filled.Settings
 import com.example.ui.ThemePreference
 import com.example.ui.screens.SettingsScreen
+import android.app.Activity
+import android.content.Context
+import androidx.credentials.ClearCredentialStateRequest
+import androidx.credentials.CredentialManager
+import androidx.credentials.CustomCredential
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialCancellationException
+import androidx.credentials.exceptions.NoCredentialException
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential.Companion.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
+import com.google.firebase.Firebase
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.auth.auth
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 val LocalLowPowerMode = compositionLocalOf { false }
 
@@ -56,14 +75,31 @@ class MainActivity : FragmentActivity() {
 
             AppTheme(darkTheme = isDarkTheme) {
                 CompositionLocalProvider(LocalLowPowerMode provides isLowPowerMode) {
-                    var isAuthenticated by remember { mutableStateOf(false) }
-                    
-                    if (isAuthenticated) {
-                        MedicalReportApp(viewModel)
+                    var currentUser by remember { mutableStateOf(Firebase.auth.currentUser) }
+
+                    DisposableEffect(Unit) {
+                        val listener = FirebaseAuth.AuthStateListener { auth ->
+                            currentUser = auth.currentUser
+                        }
+                        Firebase.auth.addAuthStateListener(listener)
+                        onDispose {
+                            Firebase.auth.removeAuthStateListener(listener)
+                        }
+                    }
+
+                    if (currentUser != null) {
+                        var isBiometricAuthenticated by remember { mutableStateOf(false) }
+                        if (isBiometricAuthenticated) {
+                            MedicalReportApp(viewModel)
+                        } else {
+                            BiometricLockScreen(
+                                onAuthenticated = { isBiometricAuthenticated = true },
+                                activity = this@MainActivity
+                            )
+                        }
                     } else {
-                        BiometricLockScreen(
-                            onAuthenticated = { isAuthenticated = true },
-                            activity = this
+                        AuthScreen(
+                            onAuthSuccess = { currentUser = Firebase.auth.currentUser }
                         )
                     }
                 }
@@ -219,6 +255,141 @@ fun MedicalReportApp(viewModel: MainViewModel) {
             }
             composable("settings") {
                 SettingsScreen(viewModel)
+            }
+        }
+    }
+}
+
+@Composable
+fun AuthScreen(onAuthSuccess: () -> Unit) {
+    var errorText by remember { mutableStateOf<String?>(null) }
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val credentialManager = remember { CredentialManager.create(context) }
+
+    LaunchedEffect(Unit) {
+        attemptAutoSignIn(context, credentialManager, onAuthSuccess, {}, coroutineScope)
+    }
+
+    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        Column(
+            modifier = Modifier.fillMaxSize().padding(32.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                imageVector = Icons.Default.Lock,
+                contentDescription = "Sign In Required",
+                modifier = Modifier.size(72.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                "Sign in to Sync Profiles",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                "Access your medical reports securely across all your devices.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(32.dp))
+            Button(onClick = {
+                onGoogleSignInClicked(context, credentialManager, onAuthSuccess, { errorText = it }, coroutineScope)
+            }) {
+                Text("Sign in with Google")
+            }
+            if (errorText != null) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = errorText!!,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+        }
+    }
+}
+
+fun attemptAutoSignIn(
+    context: Context,
+    credentialManager: CredentialManager,
+    onAuthSuccess: () -> Unit,
+    onUnauthenticated: () -> Unit,
+    scope: CoroutineScope
+) {
+    if (Firebase.auth.currentUser != null) {
+        onAuthSuccess()
+        return
+    }
+    val clientId = try {
+        context.getString(R.string.default_web_client_id)
+    } catch (e: Exception) {
+        onUnauthenticated()
+        return
+    }
+
+    val googleIdOption = GetGoogleIdOption.Builder()
+        .setFilterByAuthorizedAccounts(true)
+        .setServerClientId(clientId)
+        .setAutoSelectEnabled(true)
+        .build()
+
+    val request = GetCredentialRequest.Builder().addCredentialOption(googleIdOption).build()
+
+    scope.launch {
+        try {
+            val result = credentialManager.getCredential(context, request)
+            val credential = result.credential
+            if (credential is CustomCredential && credential.type == TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
+                val googleIdToken = GoogleIdTokenCredential.createFrom(credential.data).idToken
+                val authCredential = GoogleAuthProvider.getCredential(googleIdToken, null)
+                Firebase.auth.signInWithCredential(authCredential).await()
+                onAuthSuccess()
+            } else {
+                onUnauthenticated()
+            }
+        } catch (e: Exception) {
+            onUnauthenticated()
+        }
+    }
+}
+
+fun onGoogleSignInClicked(
+    context: Context,
+    credentialManager: CredentialManager,
+    onAuthSuccess: () -> Unit,
+    onAuthError: (String) -> Unit,
+    scope: CoroutineScope
+) {
+    val clientId = try {
+        context.getString(R.string.default_web_client_id)
+    } catch (e: Exception) {
+        onAuthError("Google Sign-In configuration missing: default_web_client_id not found")
+        return
+    }
+
+    val signInOption = GetSignInWithGoogleOption.Builder(serverClientId = clientId).build()
+    val request = GetCredentialRequest.Builder().addCredentialOption(signInOption).build()
+
+    scope.launch {
+        try {
+            val result = credentialManager.getCredential(context as Activity, request)
+            val credential = result.credential
+            if (credential is CustomCredential && credential.type == TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
+                val googleIdToken = GoogleIdTokenCredential.createFrom(credential.data).idToken
+                val authCredential = GoogleAuthProvider.getCredential(googleIdToken, null)
+                Firebase.auth.signInWithCredential(authCredential).await()
+                onAuthSuccess()
+            } else {
+                onAuthError("Unexpected credential type")
+            }
+        } catch (e: Exception) {
+            if (e !is GetCredentialCancellationException) {
+                Log.e("Auth", "Google Sign-In failed", e)
+                onAuthError(e.localizedMessage ?: "Sign in failed")
             }
         }
     }
