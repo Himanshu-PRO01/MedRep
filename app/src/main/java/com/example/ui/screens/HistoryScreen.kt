@@ -16,6 +16,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.LightMode
+import com.example.ui.ThemePreference
 import com.example.ui.MainViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -29,8 +32,20 @@ fun HistoryScreen(viewModel: MainViewModel) {
 
     Scaffold(
         topBar = {
+            val themePref by viewModel.themePreference.collectAsState()
             TopAppBar(
                 title = { Text("Saved Reports") },
+                actions = {
+                    IconButton(onClick = { 
+                        val nextTheme = if (themePref == ThemePreference.DARK) ThemePreference.LIGHT else ThemePreference.DARK
+                        viewModel.setThemePreference(nextTheme)
+                    }) {
+                        Icon(
+                            imageVector = if (themePref == ThemePreference.DARK) Icons.Default.LightMode else Icons.Default.DarkMode,
+                            contentDescription = "Toggle Theme"
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
                 )
@@ -65,6 +80,11 @@ fun HistoryScreen(viewModel: MainViewModel) {
                     Text(if (reports.isEmpty()) "No saved reports yet." else "No reports in this category.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             } else {
+                if (selectedCategory == "Blood Test") {
+                    BloodTestTrendsSection(reports = reports)
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+                
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(16.dp),

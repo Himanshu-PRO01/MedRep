@@ -11,6 +11,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.LightMode
+import com.example.ui.ThemePreference
 import com.example.ui.AnalysisState
 import com.example.ui.MainViewModel
 import com.example.ui.components.CameraView
@@ -48,8 +51,20 @@ fun ReportScannerScreen(viewModel: MainViewModel, onAnalyzeSuccess: () -> Unit) 
     } else {
         Scaffold(
             topBar = {
+                val themePref by viewModel.themePreference.collectAsState()
                 TopAppBar(
                     title = { Text("Medical Report Reader") },
+                    actions = {
+                        IconButton(onClick = { 
+                            val nextTheme = if (themePref == ThemePreference.DARK) ThemePreference.LIGHT else ThemePreference.DARK
+                            viewModel.setThemePreference(nextTheme)
+                        }) {
+                            Icon(
+                                imageVector = if (themePref == ThemePreference.DARK) Icons.Default.LightMode else Icons.Default.DarkMode,
+                                contentDescription = "Toggle Theme"
+                            )
+                        }
+                    },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer
                     )

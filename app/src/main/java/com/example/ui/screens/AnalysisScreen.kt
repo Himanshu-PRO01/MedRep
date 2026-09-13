@@ -14,6 +14,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.data.SavedReport
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.LightMode
+import com.example.ui.ThemePreference
 import com.example.ui.AnalysisState
 import com.example.ui.MainViewModel
 
@@ -43,6 +46,16 @@ fun AnalysisScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                             }
                         },
                         actions = {
+                            val themePref by viewModel.themePreference.collectAsState()
+                            IconButton(onClick = { 
+                                val nextTheme = if (themePref == ThemePreference.DARK) ThemePreference.LIGHT else ThemePreference.DARK
+                                viewModel.setThemePreference(nextTheme)
+                            }) {
+                                Icon(
+                                    imageVector = if (themePref == ThemePreference.DARK) Icons.Default.LightMode else Icons.Default.DarkMode,
+                                    contentDescription = "Toggle Theme"
+                                )
+                            }
                             IconButton(onClick = {
                                 view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
                                 val shareText = """

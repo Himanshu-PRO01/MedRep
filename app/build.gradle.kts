@@ -122,6 +122,12 @@ dependencies {
   implementation(libs.okhttp)
   // implementation(libs.play.services.location)
   implementation(libs.retrofit)
+  
+  // Charting
+  implementation("com.patrykandpatrick.vico:compose:1.14.0")
+  implementation("com.patrykandpatrick.vico:compose-m3:1.14.0")
+  implementation("com.patrykandpatrick.vico:core:1.14.0")
+
   testImplementation(libs.androidx.compose.ui.test.junit4)
   testImplementation(libs.androidx.core)
   testImplementation(libs.androidx.junit)
