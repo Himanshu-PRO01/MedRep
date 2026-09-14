@@ -230,14 +230,15 @@ fun MedicalReportApp(viewModel: MainViewModel) {
             }
         }
     ) { innerPadding ->
+        val isLowPower = LocalLowPowerMode.current
         NavHost(
             navController = navController,
             startDestination = "scanner",
             modifier = Modifier.padding(innerPadding),
-            enterTransition = { if (LocalLowPowerMode.current) EnterTransition.None else fadeIn() },
-            exitTransition = { if (LocalLowPowerMode.current) ExitTransition.None else fadeOut() },
-            popEnterTransition = { if (LocalLowPowerMode.current) EnterTransition.None else fadeIn() },
-            popExitTransition = { if (LocalLowPowerMode.current) ExitTransition.None else fadeOut() }
+            enterTransition = { if (isLowPower) EnterTransition.None else fadeIn() },
+            exitTransition = { if (isLowPower) ExitTransition.None else fadeOut() },
+            popEnterTransition = { if (isLowPower) EnterTransition.None else fadeIn() },
+            popExitTransition = { if (isLowPower) ExitTransition.None else fadeOut() }
         ) {
             composable("scanner") {
                 ReportScannerScreen(viewModel) {
@@ -324,9 +325,11 @@ fun attemptAutoSignIn(
         onAuthSuccess()
         return
     }
-    val clientId = try {
-        context.getString(R.string.default_web_client_id)
-    } catch (e: Exception) {
+    val clientIdResId = context.resources.getIdentifier("default_web_client_id", "string", context.packageName)
+    val clientId = if (clientIdResId != 0) {
+        try { context.getString(clientIdResId) } catch (e: Exception) { null }
+    } else null
+    if (clientId.isNullOrEmpty()) {
         onUnauthenticated()
         return
     }
@@ -364,10 +367,12 @@ fun onGoogleSignInClicked(
     onAuthError: (String) -> Unit,
     scope: CoroutineScope
 ) {
-    val clientId = try {
-        context.getString(R.string.default_web_client_id)
-    } catch (e: Exception) {
-        onAuthError("Google Sign-In configuration missing: default_web_client_id not found")
+    val clientIdResId = context.resources.getIdentifier("default_web_client_id", "string", context.packageName)
+    val clientId = if (clientIdResId != 0) {
+        try { context.getString(clientIdResId) } catch (e: Exception) { null }
+    } else null
+    if (clientId.isNullOrEmpty()) {
+        onAuthError("Google Sign-In configuration missing: default_web_client_id not found in google-services.json")
         return
     }
 

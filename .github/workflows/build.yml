@@ -27,6 +27,48 @@ jobs:
           keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "C=US, O=Android, CN=Android Debug"
         fi
 
+    - name: Ensure google-services.json exists
+      env:
+        GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+      run: |
+        if [ ! -f "app/google-services.json" ]; then
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            echo "$GOOGLE_SERVICES_JSON" > app/google-services.json
+          else
+            cat << 'EOF' > app/google-services.json
+{
+  "project_info": {
+    "project_number": "597488119170",
+    "project_id": "gen-lang-client-0664826710",
+    "storage_bucket": "gen-lang-client-0664826710.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:597488119170:android:48dbe09e1c140ebedaf39b",
+        "android_client_info": {
+          "package_name": "com.example"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA2orU2wSYaAhKkbsEjVhvdrDL_oJUfeKA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
+EOF
+          fi
+        fi
+
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v3
       with:
